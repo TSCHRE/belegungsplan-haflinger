@@ -1,0 +1,169 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Belegungsplan Halfinger Alm</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 1em;
+      background-color: #f9f9f9;
+    }
+    h2 {
+      text-align: center;
+    }
+    .table-container {
+      overflow-x: auto;
+      margin-bottom: 2em;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 600px;
+      margin: 0 auto;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.6em;
+      text-align: center;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 0.5em;
+      font-size: 1em;
+      box-sizing: border-box;
+    }
+    button {
+      padding: 1em 2em;
+      font-size: 1.1em;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      display: block;
+      margin: 1em auto;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .feedback {
+      text-align: center;
+      margin-top: 1em;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h2>Belegungsplan Halfinger Alm<br>23.07.2026 – 26.07.2026</h2>
+
+  <div id="tables"></div>
+
+  <button onclick="saveEntries()">Einträge speichern</button>
+  <div class="feedback" id="feedback"></div>
+
+  <script>
+    const belegungsdatenURL = "https://script.google.com/macros/s/AKfycbzKVbQbxlIObhRInu6qxSWcO4XGNTj0B02dUxe-DBu0AAioeXs8g1uEjCXJEFZRxHLsmw/exec";
+    const tage = [
+      { datum: "Donnerstag 23.07.2026", kurz: "2026-07-23" },
+      { datum: "Freitag 24.07.2026", kurz: "2026-07-24" },
+      { datum: "Samstag 25.07.2026", kurz: "2026-07-25" }
+    ];
+    const raeume = ["Raum 1", "Raum 2", "Raum 3", "Raum 4", "Matratzenlager im OG"];
+    const betten = ["Bett 1", "Bett 2", "Bett 3", "Bett 4"];
+
+    function createTables() {
+      const container = document.getElementById("tables");
+      tage.forEach(tag => {
+        const div = document.createElement("div");
+        div.className = "table-container";
+        const table = document.createElement("table");
+        const thead = document.createElement("thead");
+        const headerRow = document.createElement("tr");
+        headerRow.appendChild(document.createElement("th")); // leere Ecke
+        raeume.forEach(raum => {
+          const th = document.createElement("th");
+          th.textContent = raum;
+          headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement("tbody");
+        betten.forEach(bett => {
+          const row = document.createElement("tr");
+          const label = document.createElement("td");
+          label.textContent = bett;
+          row.appendChild(label);
+          raeume.forEach(raum => {
+            const cell = document.createElement("td");
+            const input = document.createElement("input");
+            input.type = "text";
+            input.dataset.datum = tag.kurz;
+            input.dataset.raum = raum;
+            input.dataset.bett = bett;
+            cell.appendChild(input);
+            row.appendChild(cell);
+          });
+          tbody.appendChild(row);
+        });
+        table.appendChild(tbody);
+        const caption = document.createElement("caption");
+        caption.textContent = tag.datum;
+        caption.style.fontWeight = "bold";
+        caption.style.marginBottom = "0.5em";
+        table.prepend(caption);
+        div.appendChild(table);
+        container.appendChild(div);
+      });
+    }
+
+    async function loadData() {
+      try {
+        const res = await fetch(belegungsdatenURL);
+        const data = await res.json();
+        data.forEach(entry => {
+          const selector = `input[data-datum="${entry.datum}"][data-raum="${entry.raum}"][data-bett="${entry.bett}"]`;
+          const input = document.querySelector(selector);
+          if (input) input.value = entry.name;
+        });
+      } catch (err) {
+        document.getElementById("feedback").textContent = "Fehler beim Laden der Belegungsdaten.";
+      }
+    }
+
+    async function saveEntries() {
+      const inputs = document.querySelectorAll("input");
+      let success = 0, failure = 0;
+      for (const input of inputs) {
+        const name = input.value.trim();
+        const payload = {
+          datum: input.dataset.datum,
+          raum: input.dataset.raum,
+          bett: input.dataset.bett,
+          name: name
+        };
+        try {
+          const res = await fetch(belegungsdatenURL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+          const text = await res.text();
+          if (text === "OK") success++;
+          else failure++;
+        } catch (err) {
+          failure++;
+        }
+      }
+      document.getElementById("feedback").textContent =
+        `${success} Einträge erfolgreich gespeichert. ${failure > 0 ? failure + " Fehler aufgetreten." : ""}`;
+    }
+
+    createTables();
+    loadData();
+  </script>
+</body>
+</html>
