@@ -120,19 +120,22 @@
       });
     }
 
-    async function loadData() {
-      try {
-        const res = await fetch(belegungsdatenURL);
-        const data = await res.json();
-        data.forEach(entry => {
-          const selector = `input[data-datum="${entry.datum}"][data-raum="${entry.raum}"][data-bett="${entry.bett}"]`;
-          const input = document.querySelector(selector);
-          if (input) input.value = entry.name;
-        });
-      } catch (err) {
-        document.getElementById("feedback").textContent = "Fehler beim Laden der Belegungsdaten.";
-      }
-    }
+    
+async function loadData() {
+  try {
+    const res = await fetch(belegungsdatenURL);
+    if (!res.ok) throw new Error("HTTP-Status: " + res.status);
+    const data = await res.json();
+    data.forEach(entry => {
+      const selector = `input[data-datum="${entry.datum}"][data-raum="${entry.raum}"][data-bett="${entry.bett}"]`;
+      const input = document.querySelector(selector);
+      if (input) input.value = entry.name;
+    });
+  } catch (err) {
+    document.getElementById("feedback").textContent = "Fehler beim Laden der Belegungsdaten: " + err.message;
+  }
+}
+
 
     async function saveEntries() {
       const inputs = document.querySelectorAll("input");
